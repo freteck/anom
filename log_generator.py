@@ -135,7 +135,14 @@ def inject_anomalies(df, num_anomalies=1000, output_log_path="archive/synthetic_
 
         elif anomaly_type == "size_anomaly":
             row = base_row.copy()
-            row["size"] = base_row["size"] * random.randint(10, 50)
+            row["ip"] = random.choice(df["ip"].unique())
+            row["method"] = random.choice(df["method"].unique())
+            row["path"] = random.choice(df["path"].unique())
+            row["status"] = random.choice(df["status"].unique())
+            row["referrer"] = random.choice(df["referrer"].unique())
+            row["user_agent"] = random.choice(df["user_agent"].unique())
+            row["time"] = base_row["time"] + timedelta(milliseconds=random.randint(0, 1000))
+            row["size"] = base_row["size"] * random.randint(10, 50)  # inflate size
             row["category"] = "size_anomaly"
             row["anomalous"] = 1
             new_rows.append(row)
