@@ -2,9 +2,15 @@
 
 Run the following commands to get started. We assume you have python 3.0+ set up on your machine.
 
-```python -m pip install kafka-python```
+```source ./venv/bin/activate```
 
-```docker compose -f ./docker-compose-expose.yml up --detach```
+If on Mac:
+```make start-mac```
+
+Otherwise:
+```make start```
+
+*Note: If you receive the error "Cannot connect to the Docker daemon at {LOCATION}. Is the docker daemon running?" Then docker has not been started on your machine. Launch the docker application to resolve.
 
 Wait for the docker containers to start, then run:
 
