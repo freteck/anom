@@ -1,4 +1,4 @@
-﻿# CS5614 Assignment 4
+﻿# CS5614: Final Project (Anomaly Detection)
 
 Run the following commands to get started. We assume you have python 3.0+ set up on your machine.
 
