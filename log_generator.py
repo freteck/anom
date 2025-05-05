@@ -89,69 +89,102 @@ def generate_synthetic_logs(num_synthetic_entries: int, input_log_path="archive/
 
 
 def inject_anomalies(df, num_anomalies=1000, output_log_path="archive/synthetic_with_anomalies.access.log"):
-    # Three major types of anomalies:
-    # 1. (Error Codes) Spike in error codes in a short time window 
-    # 2. (DDOS) Unusual request rate from one IP  
-    # 3. (Size Anomaly) sudden content-length explosion 
-    
-    # use switch cases to execute each time of anomaly
     df_anomalous = df.copy()
     new_rows = []
 
+    # Feature pools (get unique options from the original dataset)
+    ips = df["ip"].unique()
+    methods = df["method"].unique()
+    paths = df["path"].unique()
+    statuses = df["status"].unique()
+    sizes = df["size"]
+    referrers = df["referrer"].unique()
+    user_agents = df["user_agent"].unique()
+    times = df["time"]
+
+    size_min, size_max = sizes.min(), sizes.max()
+
     for _ in range(num_anomalies):
-        anomaly_type = random.choice(["error_spike", "ddos", "size_anomaly"])
-        base_row = df.sample(1).iloc[0].copy()
+        anomaly_type = random.choice(["error_spike", "ddos", "size_anomaly", "false_positive", "cross_field", "slow_burst"])
+
+        # Create a new base row from scratch (realistic base)
+        base = {
+            "ip": random.choice(ips),
+            "time": random.choice(times),
+            "method": random.choice(methods),
+            "path": random.choice(paths),
+            "status": random.choice(statuses),
+            "size": random.randint(size_min, size_max),
+            "referrer": random.choice(referrers),
+            "user_agent": random.choice(user_agents),
+            "anomalous": 1,
+            "category": anomaly_type
+        }
 
         if anomaly_type == "error_spike":
-            error_codes = [500, 502, 503, 504]
-            burst_count = random.randint(10, 30)
-            for i in range(burst_count):
-                row = base_row.copy()
-                row["time"] += timedelta(milliseconds=i * random.randint(10, 50))
-                row["status"] = random.choice(error_codes)
-                row["size"] = random.randint(0, 200)
-                row["category"] = "error_spike"
-                row["anomalous"] = 1
-                new_rows.append(row)
+            for _ in range(random.randint(5, 10)):
+                # error spike happens around same time, has lots of error codes, and small size
+                base["time"] = base["time"] + timedelta(seconds=random.randint(0, 60))
+                base["status"] = random.choice([301, 302, 403, 404, 500])
+                base["size"] = random.randint(0, 200)
+                # random choice for the rest of the fields
+                base["ip"] = random.choice(ips)
+                base["method"] = random.choice(methods)
+                base["path"] = random.choice(paths)
+                base["referrer"] = random.choice(referrers)
+                base["user_agent"] = random.choice(user_agents)
+                new_rows.append(base.copy())  # append the modified base to new_rows
 
         elif anomaly_type == "ddos":
-            target_ip = base_row["ip"]
-            target_path = base_row["path"]
-            target_method = base_row["method"]
-            flood_time = base_row["time"]
-
-            request_count = random.randint(100, 200)
-            for _ in range(request_count):
-                row = base_row.copy()
-                row["ip"] = target_ip
-                row["path"] = target_path
-                row["method"] = target_method
-                row["time"] = flood_time  # same timestamp for all requests
-                row["referrer"] = random.choice(df["referrer"].unique())
-                row["user_agent"] = random.choice(df["user_agent"].unique())
-                row["category"] = "ddos"
-                row["anomalous"] = 1
-                new_rows.append(row)
+             for _ in range(random.randint(30, 100)):
+                # DDOS happens with increased activity around same time
+                base["time"] = base["time"] + timedelta(milliseconds=random.randint(0, 2000))
+                # random choice for the rest of the fields
+                base["status"] = random.choice(statuses)
+                base["size"] = random.randint(size_min, size_max)
+                base["ip"] = random.choice(ips)
+                base["method"] = random.choice(methods)
+                base["path"] = random.choice(paths)
+                base["referrer"] = random.choice(referrers)
+                base["user_agent"] = random.choice(user_agents)
+                new_rows.append(base.copy())  # append the modified base to new_rows
 
         elif anomaly_type == "size_anomaly":
-            row = base_row.copy()
-            row["ip"] = random.choice(df["ip"].unique())
-            row["method"] = random.choice(df["method"].unique())
-            row["path"] = random.choice(df["path"].unique())
-            row["status"] = random.choice(df["status"].unique())
-            row["referrer"] = random.choice(df["referrer"].unique())
-            row["user_agent"] = random.choice(df["user_agent"].unique())
-            row["time"] = base_row["time"] + timedelta(milliseconds=random.randint(0, 1000))
-            row["size"] = base_row["size"] * random.randint(10, 50)  # inflate size
-            row["category"] = "size_anomaly"
-            row["anomalous"] = 1
-            new_rows.append(row)
+            inflated = int(size_max * random.uniform(2, 5))
+            base["size"] = random.randint(size_max, inflated)
 
-    # combine and sort
-    df_anomalous = pd.concat([df_anomalous, pd.DataFrame(new_rows)], ignore_index=True)
+        elif anomaly_type == "false_positive":
+            # Looks normal, but label is anomalous
+            base["anomalous"] = 1
+            base["category"] = "false_positive"
+
+        elif anomaly_type == "cross_field":
+            base["referrer"], base["user_agent"] = base["user_agent"], base["referrer"]
+            base["path"] = "/internal/admin/access"
+            base["status"] = random.choice([200, 503])
+
+        elif anomaly_type == "slow_burst":
+            # increased activity over a longer period of time
+            for _ in range(random.randint(30, 100)):
+                base["time"] = base["time"] + timedelta(seconds=random.randint(60, 600))  # delayed response
+                # random choice for the rest of the fields
+                base["status"] = random.choice(statuses)
+                base["size"] = random.randint(size_min, size_max)
+                base["ip"] = random.choice(ips)
+                base["method"] = random.choice(methods)
+                base["path"] = random.choice(paths)
+                base["referrer"] = random.choice(referrers)
+                base["user_agent"] = random.choice(user_agents)
+                new_rows.append(base.copy())
+                
+        new_rows.append(base)
+
+    # combine and sort all
+    all_anomalies = pd.DataFrame(new_rows)
+    df_anomalous = pd.concat([df_anomalous, all_anomalies], ignore_index=True)
     df_anomalous = df_anomalous.sort_values(by="time")
 
-    # Output to Apache-style log file
+    # save to Apache log format
     def row_to_log(row):
         return (
             f'{row["ip"]} - - [{row["time"].strftime("%d/%b/%Y:%H:%M:%S")} +0330] '
@@ -159,17 +192,16 @@ def inject_anomalies(df, num_anomalies=1000, output_log_path="archive/synthetic_
             f'"{row["referrer"]}" "{row["user_agent"]}"'
         )
 
-    log_lines = df_anomalous.apply(row_to_log, axis=1)
-
     with open(output_log_path, "w") as f:
-        for line in log_lines:
+        for line in df_anomalous.apply(row_to_log, axis=1):
             f.write(line + "\n")
 
     return df_anomalous
- 
+
+
 df_synthetic = generate_synthetic_logs(10000, input_log_path="archive/short.access.log", output_log_path="archive/synthetic_nonanomalous.access.log")
-df_anomalous = inject_anomalies(df_synthetic, num_anomalies=16, output_log_path="archive/synthetic_with_anomalies.access.log")
-df_anomalous.to_csv("archive/synthetic_with_anomalies.csv", index=False)
+df_anomalous = inject_anomalies(df_synthetic, num_anomalies=25, output_log_path="archive/synthetic_with_anomalies.access.log")
+df_anomalous.to_csv("archive/synthetic_with_anomalies_NEW.csv", index=False)
 df_synthetic.to_csv("archive/synthetic_nonanomalous.csv", index=False)
 
 # Based on research, if we are performign supervised learning, we should have about 5-10% anomalies in the dataset.

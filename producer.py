@@ -56,4 +56,5 @@ producer = KafkaProducer(
     key_serializer=lambda x: x.encode('utf-8')
 )
 
-stream_file_lines("archive/short.access.log", producer)
+# Top level call to stream the data to kafka topic. Provide the path to the data. Use a smaller data file for testing.
+stream_file_lines("archive/synthetic_with_anomalies.access.log", producer)
