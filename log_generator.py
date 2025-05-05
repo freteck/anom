@@ -172,5 +172,5 @@ df_anomalous = inject_anomalies(df_synthetic, num_anomalies=16, output_log_path=
 df_anomalous.to_csv("archive/synthetic_with_anomalies.csv", index=False)
 df_synthetic.to_csv("archive/synthetic_nonanomalous.csv", index=False)
 
-# Based on research, if we are doing supervise learning, we should have about 5-10% anomalies in the dataset.
+# Based on research, if we are performign supervised learning, we should have about 5-10% anomalies in the dataset.
 # If we are doing unsupervised learning (auto-encoders), we should have about 1-2% anomalies in the dataset.
