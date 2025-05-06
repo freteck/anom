@@ -16,7 +16,7 @@ spark = SparkSession.\
         getOrCreate()
 
 
-df_streamed_raw = (spark.readStream.format("kafka").option("kafka.bootstrap.servers", "localhost:9093").option("subscribe", "topic_test").load())
+# df_streamed_raw = (spark.readStream.format("kafka").option("kafka.bootstrap.servers", "localhost:9092").option("subscribe", "topic_test").load())
 
 # # convert byte stream to string
 # df_streamed_kv = (df_streamed_raw

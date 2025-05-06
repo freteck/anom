@@ -19,14 +19,17 @@ services:
       KAFKA_CREATE_TOPICS: "topic_test:1:1"
     volumes:
      - /var/run/docker.sock:/var/run/docker.sock
-  # jupyterlab:
-  #   image: andreper/jupyterlab:3.0.0-spark-3.0.0
-  #   container_name: jupyterlab
-  #   ports:
-  #     - 8888:8888
-  #     - 4040:4040
-  #   volumes:
-  #     - ./data:/data/
+  jupyterlab:
+    image: andreper/jupyterlab:3.0.0-spark-3.0.0
+    container_name: jupyterlab
+    ports:
+      - 8888:8888
+      - 4040:4040
+    volumes:
+      - ./data:/opt/workspace/data/
+      - ./code:/opt/workspace/code/
+      - ./code/config/config_install.sh:/start-spark-master.sh  # Mount the script
+    entrypoint: ["/bin/bash", "/start-spark-master.sh"]  # Use the script as the entrypoint
   spark-master:
     image: andreper/spark-master:3.0.0
     container_name: spark-master
@@ -36,7 +39,7 @@ services:
     volumes:
       - ./data:/data/
       - ./code:/usr/bin/spark-3.0.0-bin-hadoop3.2/code/
-      - ./code/config/config_install.sh:/start-spark-master.sh  # Mount the script
+      - ./code/config/config_install_master.sh:/start-spark-master.sh  # Mount the script
     entrypoint: ["/bin/bash", "/start-spark-master.sh"]  # Use the script as the entrypoint
   spark-worker-1:
     image: andreper/spark-worker:3.0.0
