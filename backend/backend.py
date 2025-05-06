@@ -96,7 +96,7 @@ async def stop_streaming():
 class Email(BaseModel):
   address: str
 
-@app.post("/subscribe/")
+@app.post("/subscribe")
 async def subscribe(email: Email):
   if not validate_email(email.address):
     return {"status": "Invalid email"}
