@@ -1,10 +1,12 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI
 import time
 from time import sleep
 from json import dumps
 from kafka import KafkaProducer
 from threading import Thread, Event
 import re
+from pydantic import BaseModel
+from utils import validate_email
 
 app = FastAPI()
 
@@ -91,3 +93,13 @@ async def stop_streaming():
       return {"status": "Thread failed to stop in time"}
     return {"status": "Stopped"}
   
+class Email(BaseModel):
+  address: str
+
+@app.post("/subscribe/")
+async def subscribe(email: Email):
+  if not validate_email(email.address):
+    return {"status": "Invalid email"}
+  with open("./subscription_list.txt", "a+") as f:
+    f.write(f"{email.address}\n")
+  return {"status": "Subscribed."}
