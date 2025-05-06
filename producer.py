@@ -61,4 +61,4 @@ producer = KafkaProducer(
 )
 
 # Top level call to stream the data to kafka topic. Provide the path to the data. Use a smaller data file for testing.
-stream_file_lines("archive/synthetic_with_anomalies.access.log", producer)
+stream_file_lines("archive/data_stream.log", producer)

@@ -199,10 +199,25 @@ def inject_anomalies(df, num_anomalies=1000, output_log_path="archive/synthetic_
     return df_anomalous
 
 
-df_synthetic = generate_synthetic_logs(10000, input_log_path="archive/short.access.log", output_log_path="archive/synthetic_nonanomalous.access.log")
-df_anomalous = inject_anomalies(df_synthetic, num_anomalies=25, output_log_path="archive/synthetic_with_anomalies.access.log")
-df_anomalous.to_csv("archive/synthetic_with_anomalies_NEW.csv", index=False)
-df_synthetic.to_csv("archive/synthetic_nonanomalous.csv", index=False)
+df_synthetic = generate_synthetic_logs(10000, input_log_path="archive/short.access.log", output_log_path="archive/synthetic_nonanomalous_1.access.log")
+df_anomalous = inject_anomalies(df_synthetic, num_anomalies=25, output_log_path="archive/synthetic_with_anomalies_1.access.log")
+df_anomalous.to_csv("archive/synthetic_with_anomalies_NEW_1.csv", index=False)
+df_synthetic.to_csv("archive/synthetic_nonanomalous_1.csv", index=False)
+
+# Drop the 'anomalous' and 'category' columns
+df_anomalous_cleaned = df_anomalous.drop(columns=["anomalous", "category"])
+
+# Save the cleaned DataFrame as a new log file
+def row_to_log_cleaned(row):
+    return (
+        f'{row["ip"]} - - [{row["time"].strftime("%d/%b/%Y:%H:%M:%S")} +0330] '
+        f'"{row["method"]} {row["path"]} HTTP/1.1" {row["status"]} {row["size"]} '
+        f'"{row["referrer"]}" "{row["user_agent"]}"'
+    )
+
+with open("archive/data_stream.log", "w") as f:
+    for line in df_anomalous_cleaned.apply(row_to_log_cleaned, axis=1):
+        f.write(line + "\n")
 
 # Based on research, if we are doing supervise learning, we should have about 5-10% anomalies in the dataset.
 # If we are doing unsupervised learning (auto-encoders), we should have about 1-2% anomalies in the dataset.
