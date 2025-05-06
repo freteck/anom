@@ -76,7 +76,7 @@ async def start_streaming(filename: str = "access.log"):
   if streaming_thread and streaming_thread.is_alive():
       return {"status": "Already streaming"}
   stream_stop_event.clear()
-  streaming_thread = Thread(target=stream_file_lines, args=("../archive/synthetic_with_anomalies.access.log", producer))
+  streaming_thread = Thread(target=stream_file_lines, args=("./data/synthetic_with_anomalies.access.log", producer))
   streaming_thread.start()
   return {"status": "Streaming started in background"}
 
