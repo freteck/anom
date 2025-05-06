@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { MailOutlined } from '@ant-design/icons';
-import { Input, Button, Table, Divider, Space} from 'antd';
+import { Input, Button, Table, Divider, Space, notification} from 'antd';
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "./components/header";
+import { NotificationPlacement } from 'antd/es/notification/interface';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,8 +33,51 @@ const columns = [
 ]
 
 
+function isValidEmail(email: string) {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+}
+
+const Context = React.createContext({ name: 'Default' });
+
 export default function Home() {
+  const [api, contextHolder] = notification.useNotification();
+  const [email, setEmail] = useState<string>("");
+  const contextValue = useMemo(() => ({ name: 'Ant Design' }), []);
+  
+  const openNotification = (placement: NotificationPlacement) => {
+    api.success({
+      message: `Subscription Successful!`,
+      placement,
+    });
+  };
+
+  const invalidEmailNotification = (placement: NotificationPlacement) => {
+    api.error({
+      message: `Invalid Email Address`,
+      placement,
+    });
+  };
+
+  function subscribe(email: string) {
+    if (!isValidEmail(email)) {
+      invalidEmailNotification("bottomRight");
+      return;
+    }
+
+    fetch("/api/subscribe", {
+      method: "POST",
+      body: JSON.stringify({
+        email
+      })
+    });
+    openNotification("bottomRight");
+    setEmail("")
+  }
+
   return (
+    <Context.Provider value={contextValue}>
+    {contextHolder}
     <div className={`${geistSans.className} ${geistMono.className} font-[family-name:var(--font-geist-sans)]`}>
       <Header/>
       <main className="w-screen relative flex min-h-[100dvh] flex-col overflow-hidden items-center bg-background px-5 md:py-[100px] py-[100px] bg-[linear-gradient(to_right,#80808022_1px,transparent_1px),linear-gradient(to_bottom,#80808022_1px,transparent_1px)] bg-[size:70px_70px]">
@@ -46,8 +90,8 @@ export default function Home() {
           <SpacedDivider/>
           <div className="text-xl mb-2">Want live updates on anomalies?</div>
           <div className='flex justify-between items-center w-full'>
-            <Input className="mr-2" size="large" prefix={<MailOutlined/>}/>
-            <Button size="large" type="primary">Subscribe</Button>
+            <Input className="mr-2" size="large" prefix={<MailOutlined/>} onChange={(e) => setEmail(e.target.value)} onPressEnter={() => subscribe(email)}/>
+            <Button size="large" type="primary" onClick={() => subscribe(email)}>Subscribe</Button>
           </div>
         </div>
         <SpacedDivider/>
@@ -62,5 +106,6 @@ export default function Home() {
 
       </main>
     </div>
+    </Context.Provider>
   );
 }
